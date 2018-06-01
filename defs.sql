@@ -185,57 +185,57 @@ CREATE TABLE IF NOT EXISTS `InfResp_config` (
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('550 5.1.1')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('550 5.1.1');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('550 5.7.1')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('550 5.7.1');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('551 5.1.1')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('551 5.1.1');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('unrouteable mail domain')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('unrouteable mail domain');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('Unrouteable address')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('Unrouteable address');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('The recipient cannot be verified.')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('The recipient cannot be verified.');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('User .* not known.')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('User .* not known.');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('User .* not listed.')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('User .* not listed.');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('User .* is not defined.')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('User .* is not defined.');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('.*: User unknown')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('.*: User unknown');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('.* - User currently disabled.')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('.* - User currently disabled.');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('No thank you rejected: Account Unavailable:')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('No thank you rejected: Account Unavailable:');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('550 .* Recipient address rejected:')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('550 .* Recipient address rejected:');
 -- End command --
 
 -- Start command --
-INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('550 .*: invalid address')
+INSERT INTO `InfResp_BounceRegs` (`RegX`) VALUES ('550 .*: invalid address');
 -- End command --

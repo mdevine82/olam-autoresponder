@@ -1,0 +1,63 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: olam/web
+    depends_on:
+      - "mysql"
+      - "smtp"
+# Does not work with non-standard ports
+    ports:
+      - 80:80
+#      - 8080:80
+    networks:
+      - local_docker_network
+#  USE VOLUMES FOR DEVELOPMENT
+#    volumes:
+#      - .:/var/www
+    environment:
+      DB_MASTER_HOST: mysql
+      DB_MASTER_PORT: 3306
+      DB_DATABASE: autoresponder
+      DB_USERNAME: root
+      DB_PASSWORD: autoresponder
+      SMTP_HOST: smtp
+
+#Database
+  mysql:
+    image: mysql:5.7
+    ports:
+      - 13306:3306
+    networks:
+      - local_docker_network
+    environment:
+      MYSQL_DATABASE: autoresponder
+      MYSQL_ROOT_PASSWORD: autoresponder
+    volumes:
+      - ./defs.sql:/docker-entrypoint-initdb.d/1-schema.sql
+
+
+#Mailhog implementation, localhost:8025 to view received e-mails
+  smtp:
+    image: mailhog/mailhog
+    ports:
+      - 8025:8025
+      - 1025:1025
+    networks:
+      - local_docker_network
+
+networks:
+  local_docker_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.20.0.0/16
+
+# docker-compose build
+# docker-compose up -d
+# docker-compose down
+
+# docker exec -it olamautoresponder_app_1 /bin/bash
