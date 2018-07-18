@@ -70,7 +70,7 @@ if ($DB_POP3_Result->num_rows > 0) {
                     $fromname = makeSafe($fromname);
                     $Email_Address = makeSafe($fromaddress);
 
-                    $IsEmail = eregi("^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)+$", $fromname);
+                    $IsEmail = preg_match('/^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)+$/i', $fromname);                    
                     if ($IsEmail == 1) {
                         $FirstName = $fromname;
                         $LastName = '';
