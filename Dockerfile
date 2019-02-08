@@ -5,7 +5,7 @@ RUN apt-get update -y
 
 RUN  apt-get install -y dos2unix ntp make apache2 php7.0 libapache2-mod-php7.0 \
 	php-memcached php7.0-curl php7.0-dev php7.0-gd php7.0-mysql php7.0-mbstring \
-	php7.0-imap php-xdebug \
+	php7.0-imap php-xdebug strace \
 	php-pear graphviz libpcre3-dev libwww-perl libdatetime-perl libswitch-perl \
 	nano less && apt-get autoremove -y && apt-get clean
 
@@ -30,7 +30,9 @@ ENV APACHE_PID_FILE /var/run/apache2.pid
 
 # Set the xdebug remote host to the default gateway that is defined in the docker compose file
 # Right now we set just the subnet because gateway isn't supported, but the gateway should be the #.#.#.1 address
-#RUN echo "xdebug.remote_host=172.20.0.1" >> /etc/php/7.0/mods-available/xdebug.ini
+RUN echo "xdebug.remote_host=172.21.0.1" >> /etc/php/7.0/mods-available/xdebug.ini
+RUN echo "xdebug.profiler_output_dir=/opt/cachegrind" >> /etc/php/7.0/mods-available/xdebug.ini
+RUN mkdir /opt/cachegrind && chown -R www-data:1000 /opt/cachegrind && chmod -R 755 /opt/cachegrind
 
 # Expose apache.
 EXPOSE 80
@@ -52,16 +54,6 @@ RUN cp /root/go/bin/mhsendmail /usr/bin/mhsendmail
 RUN echo 'sendmail_path = /usr/bin/mhsendmail --smtp-addr smtp:1025' >> /etc/php/7.0/cli/php.ini
 RUN echo 'sendmail_path = /usr/bin/mhsendmail --smtp-addr smtp:1025' >> /etc/php/7.0/apache2/php.ini
 
-COPY . /var/www/html/responders
-
-RUN echo '<?php' >> /var/www/html/responders/config.php
-RUN echo '' >> /var/www/html/responders/config.php
-RUN echo '# Database information goes here. Server, user, password and database.' >> /var/www/html/responders/config.php
-RUN echo "\$MySQL_server   = 'mysql';" >> /var/www/html/responders/config.php
-RUN echo "\$MySQL_user     = 'root';" >> /var/www/html/responders/config.php
-RUN echo "\$MySQL_password = 'autoresponder';" >> /var/www/html/responders/config.php
-RUN echo "\$MySQL_database = 'autoresponder';" >> /var/www/html/responders/config.php
-
 COPY ./docker/docker-entrypoint.sh /usr/local/bin/docker_httpd
 RUN chmod u+x /usr/local/bin/docker_httpd
 
@@ -71,5 +63,5 @@ CMD ["docker_httpd"]
 # Powershell: docker build -f ./Dockerfile . -t olam/web
 
 # RUN COMMAND
-# BASH:  docker run -it -v $PWD:/opt/local/connectyard --rm cy_web
+# BASH:  docker run -it -v $PWD:/opt/local/connectyard --rm olam/web
 # Powershell:  docker run -p 8080:80 -i -t -v ${PWD}:/opt/local/connectyard --rm olam/web /bin/bash

@@ -1,6 +1,10 @@
 version: '3'
 services:
   app:
+    cap_add: 
+      - SYS_PTRACE
+    security_opt: 
+      - seccomp:unconfined
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -15,8 +19,9 @@ services:
     networks:
       - local_docker_network
 #  USE VOLUMES FOR DEVELOPMENT
-#    volumes:
-#      - .:/var/www
+    volumes:
+      - ./cachegrind:/opt/cachegrind
+      - .:/var/www/html
     environment:
       DB_MASTER_HOST: mysql
       DB_MASTER_PORT: 3306
@@ -37,6 +42,7 @@ services:
       MYSQL_ROOT_PASSWORD: autoresponder
     volumes:
       - ./defs.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - ./infinite.sql:/docker-entrypoint-initdb.d/2-data.sql
 
 
 #Mailhog implementation, localhost:8025 to view received e-mails
@@ -54,10 +60,10 @@ networks:
     ipam:
       driver: default
       config:
-      - subnet: 172.20.0.0/16
+      - subnet: 172.21.0.0/16
 
 # docker-compose build
 # docker-compose up -d
 # docker-compose down
 
-# docker exec -it olamautoresponder_app_1 /bin/bash
+# docker exec -it olam-autoresponder_app_1 /bin/bash

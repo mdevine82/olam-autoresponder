@@ -108,6 +108,7 @@ if ($config['daily_count'] <= $config['daily_limit']) {
     $DB_Responder_Result = $DB->query($query) or die("Invalid query: " . $DB->error);
     while ($this_row = $DB_Responder_Result->fetch_assoc()) {
         $responder_id = $this_row['ResponderID'];
+        $this_row['MsgArray'] = extractCSVValues($this_row['MsgList']);
         $responder_array[$responder_id] = $this_row;
     }
     $DB_Responder_Result->free();
@@ -117,6 +118,7 @@ if ($config['daily_count'] <= $config['daily_limit']) {
     $DB_Subscriber_Result = $DB->query($query) or die("Invalid query: " . $DB->error);
     while ($this_row = $DB_Subscriber_Result->fetch_assoc()) {
         $subscriber_id = $this_row['SubscriberID'];
+        $this_row['SentMsgArray'] = extractCSVValues($this_row['SentMsgs']);
         $subscriber_array[$subscriber_id] = $this_row;
     }
     $DB_Subscriber_Result->free();
@@ -167,151 +169,153 @@ if (($Send_Count <= $max_send_count) && ($config['daily_count'] <= $config['dail
             $Max_Index = sizeof($MsgList_Array);
 
             # Work thru the msg list
-            for ($msg_idx = 0; $msg_idx < $Max_Index; $msg_idx++) {
-                $msg_id = $MsgList_Array[$msg_idx];
-                $msg_data = $message_array[$msg_id];
+            $unsentMessagesArray = array_diff($this_responder['MsgArray'], $this_subscriber['SentMsgArray']);
 
-                # Check to see if the message ID is in the message list.
-                if ((!(isInList($this_subscriber['SentMsgs'], $msg_id))) && ($Send_Count <= $max_send_count) && (is_numeric($msg_id)) && ($config['daily_count'] <= $config['daily_limit'])) {
+            if (count($unsentMessagesArray) >= 1) {
+                foreach ($unsentMessagesArray AS $msg_id) {
+                    if (($Send_Count <= $max_send_count) && (is_numeric($msg_id)) && ($config['daily_count'] <= $config['daily_limit'])) {
+                        $msg_data = $message_array[$msg_id];
+                        # Figure out the time that this subscriber should receive this message.
 
-                    # Figure out the time that this subscriber should receive this message.
+                        # Seconds math (mins, hours, days).
+                        $message_send_time = $this_subscriber['TimeJoined'] + $msg_data['SecMinHoursDays'];
 
-                    # Seconds math (mins, hours, days).
-                    $message_send_time = $this_subscriber['TimeJoined'] + $msg_data['SecMinHoursDays'];
+                        # Months math.
+                        if ($msg_data['Months'] > 0) {
+                            $month_str = "+" . $msg_data['Months'] . " months";
+                            $message_send_time = strtotime($month_str, $message_send_time);
+                        }
 
-                    # Months math.
-                    if ($msg_data['Months'] > 0) {
-                        $month_str = "+" . $msg_data['Months'] . " months";
-                        $message_send_time = strtotime($month_str, $message_send_time);
-                    }
+                        # Check bounds
+                        if (!(is_numeric($msg_data['absHours']))) {
+                            $msg_data['absHours'] = 0;
+                        }
+                        if (!(is_numeric($msg_data['absMins']))) {
+                            $msg_data['absMins'] = 0;
+                        }
 
-                    # Check bounds
-                    if (!(is_numeric($msg_data['absHours']))) {
-                        $msg_data['absHours'] = 0;
-                    }
-                    if (!(is_numeric($msg_data['absMins']))) {
-                        $msg_data['absMins'] = 0;
-                    }
+                        # Calculate absolute positioning.
+                        if (($msg_data['absDay'] != "") || ($msg_data['absHours'] > 0) || ($msg_data['absMins'] > 0)) {
+                            # Reposition the clock to the day
+                            $that_day = date('j F Y', $message_send_time);
+                            $message_send_time = strtotime($that_day);
 
-                    # Calculate absolute positioning.
-                    if (($msg_data['absDay'] != "") || ($msg_data['absHours'] > 0) || ($msg_data['absMins'] > 0)) {
-                        # Reposition the clock to the day
-                        $that_day = date('j F Y', $message_send_time);
-                        $message_send_time = strtotime($that_day);
+                            # Figure the next day
+                            if (($msg_data['absDay'] == "Monday") || ($msg_data['absDay'] == "Tuesday") || ($msg_data['absDay'] == "Wednesday") || ($msg_data['absDay'] == "Thursday") || ($msg_data['absDay'] == "Friday") || ($msg_data['absDay'] == "Saturday") || ($msg_data['absDay'] == "Sunday")) {
+                                # Get this day
+                                $day_in_question = date('l', $message_send_time);
 
-                        # Figure the next day
-                        if (($msg_data['absDay'] == "Monday") || ($msg_data['absDay'] == "Tuesday") || ($msg_data['absDay'] == "Wednesday") || ($msg_data['absDay'] == "Thursday") || ($msg_data['absDay'] == "Friday") || ($msg_data['absDay'] == "Saturday") || ($msg_data['absDay'] == "Sunday")) {
-                            # Get this day
-                            $day_in_question = date('l', $message_send_time);
+                                # Do we need to find the next day?
+                                if ($day_in_question != $msg_data['absDay']) {
+                                    # Yes, reposition the day
+                                    $day_str = "next " . $msg_data['absDay'];
+                                    $message_send_time = strtotime($day_str, $message_send_time);
+                                }
+                            }
 
-                            # Do we need to find the next day?
-                            if ($day_in_question != $msg_data['absDay']) {
-                                # Yes, reposition the day
-                                $day_str = "next " . $msg_data['absDay'];
-                                $message_send_time = strtotime($day_str, $message_send_time);
+                            # Add the hours
+                            if ($msg_data['absHours'] > 0) {
+                                $message_send_time = strtotime("+" . $msg_data['absHours'] . " hours", $message_send_time);
+                            }
+
+                            # Add the minutes
+                            if ($msg_data['absMins'] > 0) {
+                                $message_send_time = strtotime("+" . $msg_data['absMins'] . " minutes", $message_send_time);
                             }
                         }
 
-                        # Add the hours
-                        if ($msg_data['absHours'] > 0) {
-                            $message_send_time = strtotime("+" . $msg_data['absHours'] . " hours", $message_send_time);
-                        }
+                        # Ok, we've constructed the correct send time, is it time yet?
+                        if (time() >= $message_send_time) {
+                            # Yes, it is.
 
-                        # Add the minutes
-                        if ($msg_data['absMins'] > 0) {
-                            $message_send_time = strtotime("+" . $msg_data['absMins'] . " minutes", $message_send_time);
-                        }
-                    }
+                            # Make the new msg str
+                            $NewMsgStr = $this_subscriber['SentMsgs'] . "," . $msg_id;
+                            $NewMsgStr = trim($NewMsgStr, ",");
+                            $NewMsgStr = trim($NewMsgStr);
+                            $this_subscriber['SentMsgs'] = $NewMsgStr;
 
-                    # Ok, we've constructed the correct send time, is it time yet?
-                    if (time() >= $message_send_time) {
-                        # Yes, it is.
+                            # Update a little more data
+                            $Set_LastActivity = time();
+                            $this_subscriber['LastActivity'] = $Set_LastActivity;
+                            $subscriber_array[$subscriber_id]['LastActivity'] = $Set_LastActivity;
 
-                        # Make the new msg str
-                        $NewMsgStr = $this_subscriber['SentMsgs'] . "," . $msg_id;
-                        $NewMsgStr = trim($NewMsgStr, ",");
-                        $NewMsgStr = trim($NewMsgStr);
-                        $this_subscriber['SentMsgs'] = $NewMsgStr;
+                            # Set the tag variables
+                            $DB_TimeJoined = $this_subscriber['TimeJoined'];
+                            $DB_Real_TimeJoined = $this_subscriber['Real_TimeJoined'];
+                            $DB_EmailAddress = $this_subscriber['EmailAddress'];
+                            $DB_LastActivity = $this_subscriber['LastActivity'];
+                            $DB_FirstName = $this_subscriber['FirstName'];
+                            $DB_LastName = $this_subscriber['LastName'];
+                            $CanReceiveHTML = $this_subscriber['CanReceiveHTML'];
+                            $DB_SubscriberID = $this_subscriber['SubscriberID'];
+                            $DB_SentMsgs = $this_subscriber['SentMsgs'];
+                            $DB_UniqueCode = $this_subscriber['UniqueCode'];
+                            $DB_ResponderName = $this_responder['Name'];
+                            $DB_OwnerEmail = $this_responder['OwnerEmail'];
+                            $DB_OwnerName = $this_responder['OwnerName'];
+                            $DB_ReplyToEmail = $this_responder['ReplyToEmail'];
+                            $DB_ResponderDesc = $this_responder['ResponderDesc'];
+                            $DB_MsgBodyHTML = $msg_data['BodyHTML'];
+                            $DB_MsgBodyText = $msg_data['BodyText'];
+                            $DB_MsgSub = $msg_data['Subject'];
+                            $Responder_ID = $this_responder_id;
+                            $Send_Subject = "$DB_MsgSub";
+                            $subcode = "s" . $DB_UniqueCode;
+                            $unsubcode = "u" . $DB_UniqueCode;
+                            $UnsubURL = $siteURL . $ResponderDirectory . "/confirm_subscription.php?c=$unsubcode";
 
-                        # Update a little more data
-                        $Set_LastActivity = time();
-                        $this_subscriber['LastActivity'] = $Set_LastActivity;
-                        $subscriber_array[$subscriber_id]['LastActivity'] = $Set_LastActivity;
+                            # Filter the email address of a few nasties
+                            $DB_EmailAddress = stripNewlines(str_replace("|", "", $DB_EmailAddress));
+                            $DB_EmailAddress = str_replace(">", "", $DB_EmailAddress);
+                            $DB_EmailAddress = str_replace("<", "", $DB_EmailAddress);
+                            $DB_EmailAddress = str_replace('/', "", $DB_EmailAddress);
+                            $DB_EmailAddress = str_replace('..', "", $DB_EmailAddress);
 
-                        # Set the tag variables
-                        $DB_TimeJoined = $this_subscriber['TimeJoined'];
-                        $DB_Real_TimeJoined = $this_subscriber['Real_TimeJoined'];
-                        $DB_EmailAddress = $this_subscriber['EmailAddress'];
-                        $DB_LastActivity = $this_subscriber['LastActivity'];
-                        $DB_FirstName = $this_subscriber['FirstName'];
-                        $DB_LastName = $this_subscriber['LastName'];
-                        $CanReceiveHTML = $this_subscriber['CanReceiveHTML'];
-                        $DB_SubscriberID = $this_subscriber['SubscriberID'];
-                        $DB_SentMsgs = $this_subscriber['SentMsgs'];
-                        $DB_UniqueCode = $this_subscriber['UniqueCode'];
-                        $DB_ResponderName = $this_responder['Name'];
-                        $DB_OwnerEmail = $this_responder['OwnerEmail'];
-                        $DB_OwnerName = $this_responder['OwnerName'];
-                        $DB_ReplyToEmail = $this_responder['ReplyToEmail'];
-                        $DB_ResponderDesc = $this_responder['ResponderDesc'];
-                        $DB_MsgBodyHTML = $msg_data['BodyHTML'];
-                        $DB_MsgBodyText = $msg_data['BodyText'];
-                        $DB_MsgSub = $msg_data['Subject'];
-                        $Responder_ID = $this_responder_id;
-                        $Send_Subject = "$DB_MsgSub";
-                        $subcode = "s" . $DB_UniqueCode;
-                        $unsubcode = "u" . $DB_UniqueCode;
-                        $UnsubURL = $siteURL . $ResponderDirectory . "/confirm_subscription.php?c=$unsubcode";
+                            # Process the tags
+                            processMessageTags();
 
-                        # Filter the email address of a few nasties
-                        $DB_EmailAddress = stripNewlines(str_replace("|", "", $DB_EmailAddress));
-                        $DB_EmailAddress = str_replace(">", "", $DB_EmailAddress);
-                        $DB_EmailAddress = str_replace("<", "", $DB_EmailAddress);
-                        $DB_EmailAddress = str_replace('/', "", $DB_EmailAddress);
-                        $DB_EmailAddress = str_replace('..', "", $DB_EmailAddress);
+                            $mail = new PHPMailer();
+                            $mail->setFrom($DB_ReplyToEmail, $DB_OwnerName);
+                            $mail->addReplyTo($DB_ReplyToEmail);
+                            $mail->addAddress($DB_EmailAddress);
+                            $mail->Subject = $Send_Subject;
 
-                        # Process the tags
-                        processMessageTags();
+                            $mail->msgHTML($DB_MsgBodyHTML);
+                            $mail->AltBody = $DB_MsgBodyText;
 
-                        $mail = new PHPMailer();
-                        $mail->setFrom($DB_ReplyToEmail, $DB_OwnerName);
-                        $mail->addReplyTo($DB_ReplyToEmail);
-                        $mail->addAddress($DB_EmailAddress);
-                        $mail->Subject = $Send_Subject;
-
-                        $mail->msgHTML($DB_MsgBodyHTML);
-                        $mail->AltBody = $DB_MsgBodyText;
-
-                        if (
-                            !empty($msg_data['attachmentName']) &&
-                            !empty($msg_data['attachmentStorageName']) &&
-                            file_exists(__DIR__ . '/storage/' . $msg_data['attachmentStorageName'])
-                        ) {
-                            $mail->addAttachment(__DIR__ . '/storage/' . $msg_data['attachmentStorageName'], $msg_data['attachmentName']);
-                        }
-
-                        if ($mail->send()) {
-                            # Verbose
-                            if ($silent != TRUE) {
-                                echo "Responder msg to sub #" . $subscriber_id . "<br>\n";
+                            if (
+                                !empty($msg_data['attachmentName']) &&
+                                !empty($msg_data['attachmentStorageName']) &&
+                                file_exists(__DIR__ . '/storage/' . $msg_data['attachmentStorageName'])
+                            ) {
+                                $mail->addAttachment(__DIR__ . '/storage/' . $msg_data['attachmentStorageName'], $msg_data['attachmentName']);
                             }
 
-                            # Update the DB
-                            $query = "UPDATE InfResp_subscribers
+                            if ($mail->send()) {
+                                # Verbose
+                                if ($silent != TRUE) {
+                                    echo "Responder msg to sub #" . $subscriber_id . "<br>\n";
+                                }
+
+                                # Update the DB
+                                $query = "UPDATE InfResp_subscribers
                                       SET SentMsgs = '$NewMsgStr',
                                       LastActivity = '$Set_LastActivity'
                                       WHERE SubscriberID = '$DB_SubscriberID'";
-                            $DB_result = $DB->query($query) or die("Invalid query: " . $DB->error);
+                                $DB_result = $DB->query($query) or die("Invalid query: " . $DB->error);
 
-                            # Increment the send counts
-                            $Send_Count++;
-                            $config['daily_count']++;
-                        } else {
-                            // TODO: handle mail errors
+                                # Increment the send counts
+                                $Send_Count++;
+                                $config['daily_count']++;
+                            } else {
+                                // TODO: handle mail errors
+                            }
                         }
                     }
                 }
             }
+
+
         }
     }
 } else {
