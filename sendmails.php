@@ -15,6 +15,9 @@
 // You should have received a copy of the GNU General Public License
 //     along with Olam Autoresponder.  If not, see <http://www.gnu.org/licenses/>.
 
+// Increase timeout limit for this scripts as it takes a long time
+set_time_limit(300);
+
 if (isset($_REQUEST['silent']) && $_REQUEST['silent'] == "1") {
     $silent = TRUE;
 } else {
