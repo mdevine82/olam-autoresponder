@@ -15,8 +15,8 @@ services:
     networks:
       - local_docker_network
 #  USE VOLUMES FOR DEVELOPMENT
-#    volumes:
-#      - .:/var/www
+    volumes:
+      - .:/var/www
     environment:
       DB_MASTER_HOST: mysql
       DB_MASTER_PORT: 3306
@@ -56,8 +56,8 @@ networks:
       config:
       - subnet: 172.20.0.0/16
 
-# docker-compose build
-# docker-compose up -d
-# docker-compose down
+# docker-compose -p olam build
+# docker-compose -p olam up -d
+# docker-compose -p olam down
 
-# docker exec -it olamautoresponder_app_1 /bin/bash
+# docker exec -it olam_app_1 /bin/bash
