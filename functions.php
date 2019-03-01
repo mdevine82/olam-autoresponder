@@ -1046,4 +1046,8 @@ function addCustomFields()
 }
 
 # ---------------------------------------------------------
-?>
+
+function extractCSVValues($list) {
+    $list = strtolower(trim((trim($list)), ","));
+    return explode(',', $list);
+}
